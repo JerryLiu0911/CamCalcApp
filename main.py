@@ -1,3 +1,4 @@
+
 from kivy.animation import Animation
 from kivy.graphics import Color, RoundedRectangle
 from kivy.properties import ObjectProperty, StringProperty
@@ -5,7 +6,7 @@ from kivy.uix.camera import Camera
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
-from kivy.utils import platform
+from CNN import TensorFlowModel
 # from kivy.logger import Logger
 # import logging
 # Logger.setLevel(logging.TRACE)
@@ -38,17 +39,17 @@ Builder.load_string(
         CustomCamera:
             id: camera
             resolution: root.size
-            allow_stretch: True
+            allow_stretch: False
             # keep_ratio: True
             play: True
-            
+
         MDIconButton:
             icon: "information"
             # md_bg_color: app.theme_cls.primary_color
             pos_hint: {"center_x": 0.1, "center_y": 0.9}
             on_press: 
                 root.show_information_dialog()
-                
+
         MDFloatingActionButton:
             icon: "android"
             md_bg_color: app.theme_cls.primary_color
@@ -331,10 +332,12 @@ class CameraClick(BoxLayout):
         self.img = cv2.cvtColor(img_data, cv2.COLOR_BGRA2RGB)
         self.ratio = self.img.shape[1] / self.camera.resolution[0]
         self.crop = self.ids['crop']
-        self.cropCoords = self.ratio * np.array([self.crop.cropBox.pos[0],
-                                                 self.crop.cropBox.pos[1],
-                                                 self.crop.cropBoxWidth + self.crop.cropBox.pos[0],
-                                                 self.crop.cropBoxHeight + self.crop.cropBox.pos[1]])
+        self.cropCoords = np.array([self.crop.cropBox.pos[0] - (self.camera.resolution[0] - self.img.shape[1]) // 2,
+                                    self.crop.cropBox.pos[1] - (self.camera.resolution[1] - self.img.shape[0]) // 2,
+                                    self.crop.cropBoxWidth + self.crop.cropBox.pos[0] - (
+                                                self.camera.resolution[0] - self.img.shape[1]) // 2,
+                                    self.crop.cropBoxHeight + self.crop.cropBox.pos[1] - (
+                                                self.camera.resolution[1] - self.img.shape[0]) // 2])
         '''
         This part caused confusion as Kivy defines (0, 0) as the bottom left corner of the window, whereas OpenCV defines
         (0, 0) as the top left corner of the window. The coordinates here therefore show using the kivy coordinate system
@@ -356,28 +359,37 @@ class CameraClick(BoxLayout):
 
     def when_pressed(self):
         self.capture()
-        image, areas, aspect_ratios = sg.segment('croppedinput.jpg', test = True)
+        image, areas, aspect_ratios = sg.segment('croppedinput.jpg', test=True)
+        print("areas", areas)
+        img_array = np.reshape(image, [len(image), 50, 50, 1])
+        img_array = np.array(img_array, np.float32)
         self.display.results.img.reload()
-        img_array = keras.preprocessing.image.img_to_array(image)
-        prediction = model.predict(img_array)
-
-        app.setString(''.join(self.contextClassification(prediction, areas, aspect_ratios))) #concatenates array to string
+        predictions = []
+        for input in img_array:
+            input = input.reshape(1, input.shape[0], input.shape[1], input.shape[2])
+            prediction = model.pred(input)
+            # predictedIndex.append(int(prediction.argmax(axis=1)))
+            predictions.append(prediction)
+        predictions = np.reshape(predictions, (len(predictions), 16))
+        app.setString(
+            ''.join(self.contextClassification(predictions, areas, aspect_ratios)))  # concatenates array to string
 
     def get_img(self):
         return self.img
 
-    def contextClassification(self, prediction, areas, aspect_ratios):
+    def contextClassification(self, predictions, areas, aspect_ratios):
         '''Context assisted classification : after taking in the predicted values from the neural network, factors such as
         size of the cropping box and mathematical syntax are taken into account to correct misclassified symbols.'''
 
-        predictedIndex = prediction.argmax(axis=1)
-        certainty = [np.max(p) for p in prediction]
+        predictedIndex = predictions.argmax(axis=1)
+        print("predictedIndex", predictedIndex)
+        certainty = [np.max(p) for p in predictions]
         classNames = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/', '=', '*', '-', 'x']
         ans = [classNames[i] for i in predictedIndex]
         print(ans)
         symbols = ['+', '/', '=', '*', '-']
         for i in range(0, len(ans)):
-            if ans[i] == '4' or ans[i] == '8' and areas[i] <= max(areas) / 1.8 and 0.75 < aspect_ratios[i] < 1.2:
+            if ans[i] == '4' or ans[i] == '8' and areas[i] <= np.max(areas) / 1.8 and 0.75 < aspect_ratios[i] < 1.2:
                 ans[i] = 'x'
             if (ans[i] == '8' or ans[i] == '2') and areas[i] <= np.mean(areas) / 3:
                 ans[i] = '='
@@ -396,8 +408,8 @@ class CameraClick(BoxLayout):
                         currentMinEq = i
                         currentMinCert = certainty[i]
             for i in range(0, len(symbols)):  # Searches for a second possible symbol
-                if prediction[currentMinEq][i + 9] > max:
-                    max = prediction[currentMinEq][i]
+                if predictions[currentMinEq][i + 9] > max:
+                    max = predictions[currentMinEq][i]
                     secondMaxIndex = maxIndex
                     maxIndex = i
             print("maxIndex", maxIndex, "secondMaxIndex", secondMaxIndex)
@@ -448,8 +460,6 @@ class TestCamera(MDApp):
         # self.GUI.ids.main_screen.ids.Display.open()
         return GUI()
 
-
-
     def show_confirmation_dialog(self):
         self.dialog = MDDialog(
             title="Recognized Numbers:",
@@ -491,5 +501,6 @@ class TestCamera(MDApp):
 
 
 app = TestCamera()
-model = keras.models.load_model('CNN')
+model = TensorFlowModel()
+model.load(os.path.join(os.getcwd(), 'CNN.tflite'))
 app.run()
