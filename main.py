@@ -7,10 +7,6 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
 from CNN import TensorFlowModel
-# from kivy.logger import Logger
-# import logging
-# Logger.setLevel(logging.TRACE)
-# from android.permissions import request_permission, Permission, check_permission
 import os
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager
@@ -22,12 +18,10 @@ from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.widget import MDWidget
 import ImageSegmentationModule as sg
-from tensorflow import keras
 import numpy as np
 
 Builder.load_string(
     '''
-#: import NoTransition kivy.uix.screenmanager.NoTransition
 
 <CropBox>
 
@@ -359,7 +353,7 @@ class CameraClick(BoxLayout):
 
     def when_pressed(self):
         self.capture()
-        image, areas, aspect_ratios = sg.segment('croppedinput.jpg', test=True)
+        image, areas, aspect_ratios = sg.segment('croppedinput.jpg', test=False)
         print("areas", areas)
         img_array = np.reshape(image, [len(image), 50, 50, 1])
         img_array = np.array(img_array, np.float32)
