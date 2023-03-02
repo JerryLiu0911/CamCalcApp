@@ -186,9 +186,9 @@ class CustomCamera(Camera):
     counter = 0
     index = 0
 
-    def _camera_loaded(self, *largs):
-        self.texture = Texture.create(size=np.flip(self.camera_resolution), colorfmt='rgb')
-        self.texture_size = list(self.texture.size)
+    # def _camera_loaded(self, *largs):
+    #     self.texture = Texture.create(size=np.flip(self.camera_resolution), colorfmt='rgb')
+    #     self.texture_size = list(self.texture.size)
 
     def on_tex(self, *l):
         if self._camera._buffer is None:
@@ -197,6 +197,7 @@ class CustomCamera(Camera):
 
         self.frame_to_screen(frame)
         super(CustomCamera, self).on_tex(*l)
+        self.texture = Texture.create(size=np.flip(self.camera_resolution), colorfmt='rgb')
 
     def frame_from_buf(self):
         w, h = self.resolution
