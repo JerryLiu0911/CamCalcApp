@@ -1,5 +1,6 @@
 # from android.permissions import request_permissions, Permission
 from kivy.animation import Animation
+from kivy.utils import platform
 from kivy.graphics import Color, RoundedRectangle
 from kivy.graphics.texture import Texture
 from kivy.properties import ObjectProperty, StringProperty
@@ -153,7 +154,6 @@ Builder.load_string(
 '''
 )
 
-CameraInfo = autoclass(android.)
 
 class Display(MDFloatLayout):
     results = ObjectProperty(None)
