@@ -1,6 +1,7 @@
-
+# from android.permissions import request_permissions, Permission
 from kivy.animation import Animation
 from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics.texture import Texture
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.uix.camera import Camera
 from kivy.uix.label import Label
@@ -28,11 +29,12 @@ Builder.load_string(
 <CustomCamera>
 
 <CameraClick>:
+    size: root.width, root.height
     display: Display
     FloatLayout:
         CustomCamera:
             id: camera
-            resolution: root.size
+            resolution: self.camera_resolution
             allow_stretch: False
             # keep_ratio: True
             play: True
@@ -177,31 +179,59 @@ class MainScreen(MDScreen):
 
 
 class CustomCamera(Camera):
-    # def on_auth_status(self, general_status, status_message):
-    #     if general_status == 'provider-enabled':
-    #         pass
-    #     else:
-    #         self.open_permissison_popup()
-    #
-    # def open_permission_popup(self):
-    #     self.dialog = MDDialog(
-    #         title= "Camera Error",
-    #         text= "Camera permissions should be enabled"
-    #         )
-    #     self.dialog.open()
-    # def get_auth(self, ):
-    #     # get permissions from camera
-    #     if platform == 'android':
-    #         from android.permissions import Permission, request_permissions
-    #         def callback(permission, results):
-    #             if all([res for res in results]):
-    #                 print("Got all permissions")
-    #             else:
-    #                 print("Permission error")
-    #
-    #         request_permissions([Permission.CAMERA])
+    camera_resolution = (1280, 720)
+    face_resolution = (128, 96)
+    ratio = camera_resolution[0] / face_resolution[0]
+    counter = 0
 
-    pass
+    def _camera_loaded(self, *largs):
+        self.texture = Texture.create(size=np.flip(self.camera_resolution), colorfmt='rgb')
+        self.texture_size = list(self.texture.size)
+
+    def on_tex(self, *l):
+        if self._camera._buffer is None:
+            return None
+        frame = self.frame_from_buf()
+
+        self.frame_to_screen(frame)
+        super(CustomCamera, self).on_tex(*l)
+
+    def frame_from_buf(self):
+        w, h = self.resolution
+        frame = np.frombuffer(self._camera._buffer.tostring(), 'uint8').reshape((h + h // 2, w))
+        frame_bgr = cv2.cvtColor(frame, 93)
+        return np.rot90(frame_bgr, 3)
+
+    def frame_to_screen(self, frame):
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        cv2.putText(frame_rgb, str(self.counter), (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        self.counter += 1
+        flipped = np.flip(frame_rgb, 0)
+        buf = flipped.tostring()
+        self.texture.blit_buffer(buf, colorfmt='rgb', bufferfmt='ubyte')
+    def on_auth_status(self, general_status, status_message):
+        if general_status == 'provider-enabled':
+            pass
+        else:
+            self.open_permissison_popup()
+
+    def open_permission_popup(self):
+        self.dialog = MDDialog(
+            title= "Camera Error",
+            text= "Camera permissions should be enabled"
+            )
+        self.dialog.open()
+    def get_auth(self, ):
+        # get permissions from camera
+        if platform == 'android':
+            from android.permissions import Permission, request_permissions
+            def callback(permission, results):
+                if all([res for res in results]):
+                    print("Got all permissions")
+                else:
+                    print("Permission error")
+
+            request_permissions([Permission.CAMERA])
 
 
 class CropBox(MDWidget):
@@ -337,6 +367,7 @@ class CameraClick(BoxLayout):
         (0, 0) as the top left corner of the window. The coordinates here therefore show using the kivy coordinate system
         in this order, (leftmost x, bottom y, right x, top y). 
         '''
+        print(f"window resolution : {self.height}, {self.width}")
         print("camera resolution : ", self.camera.resolution)
         print("texture shape : ", self.img.shape)
         print(self.cropCoords)
