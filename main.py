@@ -33,12 +33,12 @@ Builder.load_string(
     size: root.width, root.height
     display: Display
     FloatLayout:
-        CustomCamera:
-            id: camera
-            resolution: self.camera_resolution
-            allow_stretch: False
-            # keep_ratio: True
-            play: True
+        # CustomCamera:
+        #     id: camera
+        #     resolution: self.camera_resolution
+        #     allow_stretch: False
+        #     # keep_ratio: True
+        #     play: True
 
         MDIconButton:
             icon: "information"
