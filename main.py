@@ -268,7 +268,7 @@ class CropBox(MDWidget):
             # )
             self.cropPrompt = Label(  # text prompt
                 text="Align your math equation within the box",
-                color=(1, 1, 1),
+                color=(1, 1, 1, 1),
                 halign='center',
                 pos=(self.center_x, self.cropBox.pos[1] + self.cropBoxHeight - self.height * 0.05),
                 font_size=12
