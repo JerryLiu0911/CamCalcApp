@@ -351,9 +351,9 @@ class CameraClick(BoxLayout):
         '''
         self.camera = self.ids['camera']
         self.camera.export_to_png(
-            'byCapture.jpg')  # returns what is essentially a screenshot of the window with the edges transparent.
+            os.path.join(os.getcwd(), 'byCapture.jpg'))  # returns what is essentially a screenshot of the window with the edges transparent.
         print("Shape of image = ", cv2.imread(
-            "byCapture.jpg").shape)  # although functionally the same and arguably more efficient at capturing
+            os.path.join(os.getcwd(), 'byCapture.jpg')))  # although functionally the same and arguably more efficient at capturing
         self.texture = self.camera.texture  # It requires post-processing to remove the edges of the image
         height, width = self.texture.height, self.texture.width
         img_data = np.frombuffer(self.texture.pixels, dtype=np.uint8)
@@ -376,20 +376,20 @@ class CameraClick(BoxLayout):
         print("camera resolution : ", self.camera.resolution)
         print("texture shape : ", self.img.shape)
         print(self.cropCoords)
-        cv2.imwrite("texture.jpg", self.img)
+        cv2.imwrite(os.path.join(os.getcwd(), 'texture.jpg'), self.img)
         cv2.waitKey(0)
 
         self.img = self.img[int(self.img.shape[0] - self.cropCoords[3]):
                             int(self.img.shape[0] - self.cropCoords[1]),
                    int(self.cropCoords[0]): int(self.cropCoords[2])]
         print("resultant img", self.img.shape)
-        cv2.imwrite('croppedinput.jpg', self.img)
+        cv2.imwrite(os.path.join(os.getcwd(), 'croppedinput.jpg'), self.img)
 
         print('Captured')
 
     def when_pressed(self):
         self.capture()
-        image, areas, aspect_ratios = sg.segment('croppedinput.jpg', test=False)
+        image, areas, aspect_ratios = sg.segment(os.path.join(os.getcwd(), 'croppedinput.jpg'), test=False)
         print("areas", areas)
         img_array = np.reshape(image, [len(image), 50, 50, 1])
         img_array = np.array(img_array, np.float32)

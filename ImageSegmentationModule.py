@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+import os
 import pathlib
 
 
@@ -257,7 +258,7 @@ def segment(file, test=False, size = 50, Contour_thresh=22):
 
     # groups overlapping contours
     coords = drawGroupContours(coords, img)
-    cv2.imwrite("byCapture.jpg", img)
+    cv2.imwrite(os.path.join(os.getcwd(), 'byCapture.jpg'), img)
 
     # stores the cropped images as a list, areas and aspect_ratio of each of the images to be used for
     # classification correction
