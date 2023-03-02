@@ -153,6 +153,7 @@ Builder.load_string(
 '''
 )
 
+CameraInfo = autoclass(android.)
 
 class Display(MDFloatLayout):
     results = ObjectProperty(None)
@@ -183,6 +184,7 @@ class CustomCamera(Camera):
     face_resolution = (128, 96)
     ratio = camera_resolution[0] / face_resolution[0]
     counter = 0
+    index = 0
 
     def _camera_loaded(self, *largs):
         self.texture = Texture.create(size=np.flip(self.camera_resolution), colorfmt='rgb')
@@ -225,13 +227,16 @@ class CustomCamera(Camera):
         # get permissions from camera
         if platform == 'android':
             from android.permissions import Permission, request_permissions
+            from jnius import autoclass
+
+            self.index = autoclass('android.hardware.Camera$CameraInfo').CAMERA_FACING_BACK
             def callback(permission, results):
                 if all([res for res in results]):
                     print("Got all permissions")
                 else:
                     print("Permission error")
 
-            request_permissions([Permission.CAMERA])
+            request_permissions([Permission.CAMERA, Permission.WRITE_EXTERNAL_STORAGE])
 
 
 class CropBox(MDWidget):
